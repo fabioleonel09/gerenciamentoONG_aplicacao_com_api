@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px 50px 0 50px;
+            background-color: #262626;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 50px 50px 50px 50px;
+            border: 2px solid #262626;
+            background-color: #4d4b4bee;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+        }
+
+        h1 {
+            text-align: center;
+            margin: -65px 0 0 50px;
+            background-color: #4d4b4b;
+            border: 2px solid #262626;
+            color: #262626;
+            font-size: 20px;
+            width: 150px;
+            border-radius: 20px;
+            position: absolute;
+        }
+
+        form input,
+        form select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        form input[type="submit"] {
+            background-color: #262626;
+            color: rgb(132, 221, 137);
+            border: none;
+            cursor: pointer;
+            width: auto;
+        }
+
+        form input[type="submit"]:hover {
+            background-color: white;
+            color: rgb(132, 221, 137);
+            border: 1px solid #262626;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        /* Estilo para a barra de pesquisa */
+        #searchContainer {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        #search {
+            flex: 1;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        #searchButton {
+            margin-left: 10px;
+            padding: 8px 16px;
+            background-color: #262626;
+            color: rgb(132, 221, 137);
+            border: none;
+            cursor: pointer;
+        }
+
+        #searchButton:hover {
+            background-color: white;
+            color: rgb(132, 221, 137);
+            border: 1px solid #262626;
+        }
+
+        #estoqueTableWrapper {
+            max-height: 100px;
+            /* Define a altura máxima desejada */
+            overflow-y: auto;
+        }
+
+        #botaoImagemContainer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        #botaoImagem {
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        #botaoImagem img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        #btnAdicionar {
+            padding: 8px 16px;
+            background-color: #262626;
+            color: rgb(132, 221, 137);
+            border: none;
+            cursor: pointer; 
+        }
+        #btnAdicionar:hover {
+            background-color: white;
+            color: rgb(132, 221, 137);
+            border: 1px solid #262626;  
+        }
+        #btnExcluir {
+            padding: 8px 16px;
+            background-color: #262626;
+            color: rgb(132, 221, 137);
+            border: none;
+            cursor: pointer; 
+        }
+        #btnExcluir:hover {
+            background-color: white;
+            color: rgb(132, 221, 137);
+            border: 1px solid #262626;   
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Estoque</h1>
+
+        <!-- Formulário para adicionar itens ao estoque -->
+        <form id="estoqueForm">
+            <label for="numeroControle">Número de Controle:</label>
+            <input type="text" id="numeroControle" name="numeroControle" required><br>
+
+            <label for="descricao">Descrição:</label>
+            <input type="text" id="descricao" name="descricao" required><br>
+
+            <label for="quantidade">Quantidade:</label>
+            <input type="text" id="quantidade" name="quantidade" required><br>
+
+            <label for="origem">Origem:</label>
+            <select id="origem" name="origem">
+                <option value="Escolher"></option>
+                <option value="Doação">Doação</option>
+                <option value="Instituição">Instituição</option>
+            </select><br>
+
+            <button id="btnAdicionar" type="button" onclick="criarItem()">Adicionar item ao estoque</button>
+        </form>
+
+        <!-- Barra de pesquisa -->
+        <div id="searchContainer">
+            <label for="search">Pesquisar pela descrição do produto:</label>
+            <label>&nbsp;&nbsp;</label>
+            <input type="text" id="search" name="search">
+        </div>
+        <br />
+
+        <!-- Tabela de estoque -->
+        <div id="estoqueTableWrapper">
+            <table id="estoqueTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Número de Controle</th>
+                        <th>Descrição</th>
+                        <th>Quantidade</th>
+                        <th>Origem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <div id="botaoImagemContainer">
+        <button id="botaoImagem">
+            <img src="image/imagemMenu.png" alt="Botão de Imagem">
+        </button>
+    </div>
+
+    <script>
+
+        //Evento de refresh na tabela, a inserir ou excluir um item.
+        document.addEventListener('DOMContentLoaded', fetchData);
+
+        async function fetchData() {
+            try {
+                const response = await fetch('http://localhost:3000/estoque');
+                const data = await response.json();
+
+                const tableBody = document.querySelector('#estoqueTable tbody');
+                tableBody.innerHTML = '';
+
+                data.forEach((item) => {
+                    const row = tableBody.insertRow();
+                    row.insertCell(0).textContent = item.idEstoque;
+                    row.insertCell(1).textContent = item.numeroControle;
+                    row.insertCell(2).textContent = item.descricao;
+                    row.insertCell(3).textContent = item.quantidade;
+                    row.insertCell(4).textContent = item.origem;
+
+                    const actionsCell = row.insertCell(5);
+                    actionsCell.innerHTML = `<button id="btnExcluir" onclick="excluirItem(${item.idEstoque})">Excluir</button>`;
+                });
+            } catch (error) {
+                console.error('Erro ao buscar dados da API:', error);
+            }
+        }
+
+        //Evento de criar ou inserir um item
+        async function criarItem() {
+            const numeroControle = document.getElementById('numeroControle').value;
+            const descricao = document.getElementById('descricao').value;
+            const quantidade = document.getElementById('quantidade').value;
+            const origem = document.getElementById('origem').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/estoque', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ numeroControle, descricao, quantidade, origem }),
+                });
+
+                if (response.ok) {
+                    fetchData();
+                    // Limpar campos do formulário após criar o item
+                    limparFormulario();
+                } else {
+                    console.error('Erro ao criar item:', response.statusText);
+                    alert('Erro ao criar item. Verifique o console para mais detalhes.');
+                }
+            } catch (error) {
+                console.error('Erro ao criar item:', error.message);
+                alert('Erro ao criar item. Verifique o console para mais detalhes.');
+            }
+        }
+
+        //Evento de excluir o item
+        async function excluirItem(id) {
+            if (confirm('Deseja realmente excluir este item?')) {
+                try {
+                    const response = await fetch(`http://localhost:3000/estoque/${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (response.ok) {
+                        fetchData(); // Recarrega os dados após a exclusão
+                    } else {
+                        console.error('Erro ao excluir item:', response.statusText);
+                        alert('Erro ao excluir item. Verifique o console para mais detalhes.');
+                    }
+                } catch (error) {
+                    console.error('Erro ao excluir item:', error.message);
+                    alert('Erro ao excluir item. Verifique o console para mais detalhes.');
+                }
+            }
+        }
+
+        // Limpar campos do formulário
+        function limparFormulario() {
+            document.getElementById('numeroControle').value = '';
+            document.getElementById('descricao').value = '';
+            document.getElementById('quantidade').value = '';
+            document.getElementById('origem').value = '';
+        }
+
+        //Evento de pesquisar
+        document.getElementById('search').addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#estoqueTable tbody tr');
+
+            tableRows.forEach((row) => {
+                const descricaoCell = row.querySelector('td:nth-child(3)');
+                const descricaoText = descricaoCell.textContent.toLowerCase();
+
+                if (descricaoText.includes(searchTerm)) {
+                    row.style.display = ''; // Exibe a linha se a descrição contiver o termo de pesquisa
+                } else {
+                    row.style.display = 'none'; // Oculta a linha se a descrição não contiver o termo de pesquisa
+                }
+            });
+        });
+
+        // Voltar a página menu //
+        document.getElementById('botaoImagem').onclick = function () {
+            window.location.href = 'menu.html';
+        };
+    </script>
+
+</body>
+
+</html>
